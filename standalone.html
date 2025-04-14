@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>viewgrip review: the 1800-line chaos generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* Base styling for the page */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --neon-green: #00ff99;
+      --neon-pink: #ff00ff;
+      --neon-yellow: #ffe135;
+      --dark-bg: #0f0f0f;
+      --dark-bg-2: #1a1a1a;
+      --code-bg: #1e1e1e;
+      --text-color: #f2f2f2;
+      --muted-text: #bbbbbb;
+      --glitch-speed: 2s;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--dark-bg), var(--dark-bg-2));
+      color: var(--text-color);
+      font-family: 'JetBrains Mono', monospace;
+      padding: 50px 20px;
+      line-height: 1.8;
+      overflow-x: hidden;
+      animation: subtle-glitch 8s infinite;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    @keyframes subtle-glitch {
+      0% { background-position: 0% 0%; }
+      20% { background-position: 20% 0%; }
+      40% { background-position: 40% 0%; }
+      60% { background-position: 60% 0%; }
+      80% { background-position: 80% 0%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    @keyframes glitch {
+      0% { transform: translate(2px, 0); text-shadow: 0 0 5px var(--neon-green); }
+      20% { transform: translate(-2px, 0); text-shadow: 0 0 10px var(--neon-pink); }
+      40% { transform: translate(2px, 0); text-shadow: 2px 0 1px rgba(0,255,0,0.7), -2px 0 1px rgba(255,0,255,0.7); }
+      60% { transform: translate(-2px, 0); text-shadow: 0 0 5px var(--neon-green); }
+      80% { transform: translate(2px, 0); text-shadow: 0 0 10px var(--neon-pink); }
+      100% { transform: translate(0, 0); text-shadow: 0 0 15px var(--neon-pink), 0 0 20px var(--neon-green); }
+    }
+
+    @keyframes waveMotion {
+      0%, 100% { transform: translateY(0) skewX(0deg); }
+      25% { transform: translateY(-5px) skewX(2deg); }
+      75% { transform: translateY(5px) skewX(-2deg); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    @keyframes floatyBoing {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-20px) rotate(2deg); }
+      50% { transform: translateY(0) rotate(-2deg); }
+      75% { transform: translateY(10px) rotate(1deg); }
+    }
+
+    @keyframes rotateAround {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes vibrate {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+
+    @keyframes scrollingText {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    @keyframes rotateCrazy {
+      0% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(90deg) scale(1.2); }
+      50% { transform: rotate(180deg) scale(1); }
+      75% { transform: rotate(270deg) scale(0.8); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    @keyframes matrix-effect {
+      0% { color: #00ff00; text-shadow: 0 0 8px #00ff00; }
+      50% { color: #33ff33; text-shadow: 0 0 8px #33ff33; }
+      100% { color: #00ff00; text-shadow: 0 0 8px #00ff00; }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 3em;
+      color: var(--neon-green);
+      text-shadow: 0 0 20px var(--neon-green);
+      animation: waveMotion 4s infinite;
+      margin-bottom: 30px;
+      padding-top: 40px;
+      text-align: center;
+    }
+
+    h2 {
+      color: var(--neon-pink);
+      text-shadow: 0 0 20px var(--neon-pink);
+      margin: 40px 0 20px;
+      font-size: 2.2em;
+      animation: blink 4s infinite;
+    }
+
+    h3 {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 15px var(--neon-yellow);
+      margin: 30px 0 15px;
+      font-size: 1.8em;
+      animation: vibrate 3s infinite;
+    }
+
+    p {
+      margin-bottom: 15px;
+      font-size: 1.1em;
+      max-width: 850px;
+    }
+
+    .section {
+      margin: 40px 0;
+      padding: 25px;
+      background-color: rgba(30, 30, 30, 0.7);
+      border-radius: 10px;
+      border-left: 5px solid var(--neon-green);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, transparent 45%, rgba(0, 255, 153, 0.1) 50%, transparent 55%);
+      background-size: 200% 200%;
+      animation: subtle-glitch 5s infinite linear;
+      pointer-events: none;
+    }
+
+    .glitch-effect {
+      animation: glitch 0.5s infinite;
+      display: inline-block;
+    }
+
+    .wave-effect {
+      animation: waveMotion 3s infinite;
+      display: inline-block;
+    }
+
+    footer {
+      color: #777;
+      font-size: 0.9em;
+      margin-top: 60px;
+      padding: 30px 0;
+      border-top: 1px solid var(--neon-green);
+      text-align: center;
+    }
+
+    #popup-ad {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--neon-pink);
+      color: white;
+      padding: 25px;
+      font-weight: bold;
+      font-size: 1.2em;
+      border-radius: 15px;
+      z-index: 9999;
+      animation: floatyBoing 6s infinite ease-in-out;
+      box-shadow: 0 0 15px var(--neon-pink);
+      font-family: 'Comic Sans MS', cursive;
+      max-width: 350px;
+    }
+
+    #popup-ad a {
+      color: yellow;
+      text-decoration: none;
+      font-weight: bold;
+      position: relative;
+      z-index: 10000;
+      display: inline-block;
+      padding: 5px;
+      animation: blink 1s infinite;
+    }
+
+    #popup-close {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: bold;
+      animation: rotateAround 3s infinite linear;
+    }
+
+    .floating-buttons {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 20px;
+      z-index: 100;
+    }
+
+    .floating-buttons button {
+      background-color: var(--neon-green);
+      color: black;
+      padding: 15px;
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--neon-green);
+      border: none;
+      font-size: 1.5em;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .floating-buttons button:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 20px var(--neon-green), 0 0 40px var(--neon-green);
+    }
+
+    .console {
+      background-color: var(--code-bg);
+      padding: 20px;
+      font-family: monospace;
+      border-left: 5px solid var(--neon-green);
+      margin: 20px 0;
+      overflow: hidden;
+      color: var(--neon-green);
+    }
+
+    .console div {
+      margin-bottom: 8px;
+      animation: matrix-effect 2s infinite;
+      font-size: 1.1em;
+      letter-spacing: 0.5px;
+    }
+
+    .code-snippet {
+      background-color: var(--code-bg);
+      padding: 20px;
+      border-radius: 10px;
+      font-family: monospace;
+      margin: 15px 0;
+      overflow-x: auto;
+      border-left: 5px solid var(--neon-green);
+      position: relative;
+    }
+
+    .code-snippet code {
+      color: #e6e6e6;
+    }
+
+    .code-snippet .comment {
+      color: #6a9955;
+    }
+
+    .code-snippet .keyword {
+      color: #569cd6;
+    }
+
+    .code-snippet .string {
+      color: #ce9178;
+    }
+
+    .code-snippet .function {
+      color: #dcdcaa;
+    }
+
+    .banana {
+      font-size: 1.4em;
+      color: var(--neon-yellow);
+      cursor: pointer;
+      animation: float 3s infinite;
+      display: inline-block;
+    }
+
+    ul, ol {
+      list-style-type: square;
+      margin-left: 20px;
+      margin-bottom: 20px;
+    }
+
+    li {
+      margin-bottom: 10px;
+    }
+
+    blockquote {
+      border-left: 4px solid var(--neon-green);
+      padding-left: 20px;
+      font-style: italic;
+      margin: 20px 0;
+      color: var(--muted-text);
+      background-color: rgba(0, 255, 153, 0.05);
+      padding: 15px;
+      border-radius: 0 10px 10px 0;
+      animation: blink 5s infinite;
+    }
+
+    #ad-section {
+      display: block;
+      margin: 40px auto;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(255, 255, 0, 0.3);
+      background-color: rgba(255, 0, 255, 0.2);
+      padding: 20px;
+      text-align: center;
+      animation: shake 5s infinite;
+    }
+
+    .ad-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 15px;
+      background-color: #2a2a2a;
+      padding: 20px;
+      border: 3px solid var(--neon-pink);
+      box-shadow: 0 0 15px var(--neon-pink);
+    }
+    
+    .ad-text {
+      font-family: 'Comic Sans MS', cursive;
+      color: yellow;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px #000;
+      animation: blink 1s infinite;
+    }
+
+    .glitch-text {
+      font-size: 2em;
+      animation: glitch 1s infinite;
+      display: inline-block;
+    }
+
+    .animated-glitch {
+      animation: glitch 2s infinite;
+      display: inline-block;
+    }
+
+    .scrolling-text {
+      white-space: nowrap;
+      overflow: hidden;
+      width: 100%;
+      margin: 20px 0;
+      font-size: 1.2em;
+      color: var(--neon-green);
+      animation: scrollingText 15s linear infinite;
+    }
+
+    .marquee {
+      white-space: nowrap;
+      overflow: hidden;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--dark-bg);
+      color: var(--neon-green);
+      padding: 10px 0;
+      border-top: 2px solid var(--neon-pink);
+      z-index: 9000;
+    }
+
+    .marquee span {
+      display: inline-block;
+      animation: scrollingText 30s linear infinite;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .testimonial {
+      background-color: rgba(0, 255, 153, 0.05);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      position: relative;
+      border: 1px solid var(--neon-green);
+    }
+
+    .testimonial::before {
+      content: '"';
+      position: absolute;
+      top: -20px;
+      left: 10px;
+      font-size: 80px;
+      color: var(--neon-green);
+      opacity: 0.3;
+    }
+
+    .testimonial-author {
+      text-align: right;
+      font-style: italic;
+      color: var(--neon-pink);
+      margin-top: 10px;
+    }
+
+    .rating {
+      color: var(--neon-yellow);
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 10px;
+      height: 24px;
+      background-color: var(--neon-green);
+      animation: blink 1s infinite;
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+
+    .typing-effect {
+      border-right: 3px solid var(--neon-green);
+      white-space: nowrap;
+      overflow: hidden;
+      animation: typing 3.5s steps(40, end), blink 0.75s step-end infinite;
+    }
+
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+
+    .crazy-button {
+      background: linear-gradient(45deg, var(--neon-pink), var(--neon-green));
+      border: none;
+      color: black;
+      font-weight: bold;
+      padding: 15px 25px;
+      border-radius: 30px;
+      margin: 20px 0;
+      font-size: 1.2em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .crazy-button:hover {
+      transform: scale(1.1) rotate(3deg);
+      box-shadow: 0 0 30px rgba(255, 0, 255, 0.8);
+    }
+
+    .crazy-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: all 0.6s;
+      z-index: -1;
+    }
+
+    .crazy-button:hover::before {
+      left: 100%;
+    }
+    
+    .feature-box {
+      display: flex;
+      gap: 20px;
+      margin: 30px 0;
+      flex-wrap: wrap;
+    }
+    
+    .feature-item {
+      flex: 1 1 300px;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      border: 1px solid var(--neon-green);
+      box-shadow: 0 0 10px rgba(0, 255, 153, 0.3);
+      transition: all 0.3s;
+    }
+    
+    .feature-item:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 0 20px rgba(0, 255, 153, 0.5);
+    }
+    
+    .feature-item h3 {
+      margin-top: 0;
+      border-bottom: 2px solid var(--neon-pink);
+      padding-bottom: 10px;
+    }
+    
+    .error-message {
+      background-color: rgba(255, 0, 0, 0.1);
+      border-left: 4px solid red;
+      padding: 10px;
+      margin: 20px 0;
+      color: #ff6666;
+      animation: glitch 1s infinite;
+    }
+    
+    .warning-message {
+      background-color: rgba(255, 255, 0, 0.1);
+      border-left: 4px solid yellow;
+      padding: 10px;
+      margin: 20px 0;
+      color: #ffff99;
+    }
+    
+    .success-message {
+      background-color: rgba(0, 255, 0, 0.1);
+      border-left: 4px solid green;
+      padding: 10px;
+      margin: 20px 0;
+      color: #66ff66;
+    }
+    
+    .hidden-banana {
+      position: fixed;
+      width: 30px;
+      height: 30px;
+      font-size: 30px;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 9999;
+      cursor: pointer;
+    }
+    
+    .video-container {
+      background-color: #1e1e1e;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 30px 0;
+      position: relative;
+    }
+    
+    .video-placeholder {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 5px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .play-button {
+      width: 80px;
+      height: 80px;
+      background-color: rgba(255, 0, 255, 0.7);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 10;
+    }
+    
+    .play-button::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 20px solid transparent;
+      border-bottom: 20px solid transparent;
+      border-left: 30px solid white;
+      margin-left: 10px;
+    }
+    
+    .video-controls {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 0 0;
+    }
+    
+    .seeking-bar {
+      height: 10px;
+      width: 100%;
+      background-color: #333;
+      border-radius: 5px;
+      margin-top: 15px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .seeking-bar::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 30%;
+      background-color: var(--neon-green);
+      border-radius: 5px;
+    }
+    
+    .matrix-effect {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.03;
+    }
+    
+    #cursor-follower {
+      position: fixed;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: rgba(0, 255, 153, 0.3);
+      box-shadow: 0 0 20px rgba(0, 255, 153, 0.5);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      mix-blend-mode: screen;
+    }
+    
+    .easter-egg {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background-color: transparent;
+      cursor: pointer;
+      z-index: 100;
+    }
+    
+    #egg1 {
+      top: 20%;
+      left: 5%;
+    }
+    
+    #egg2 {
+      top: 50%;
+      right: 10%;
+    }
+    
+    #egg3 {
+      bottom: 15%;
+      left: 15%;
+    }
+    
+    .popup-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      background-color: var(--neon-green);
+      color: black;
+      border-radius: 5px;
+      font-weight: bold;
+      z-index: 10000;
+      transform: translateX(150%);
+      transition: transform 0.5s;
+      box-shadow: 0 0 20px rgba(0, 255, 153, 0.5);
+    }
+    
+    .popup-notification.show {
+      transform: translateX(0);
+    }
+    
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    
+    .grid-item {
+      background-color: rgba(30, 30, 30, 0.7);
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid var(--neon-pink);
+      transition: all 0.3s;
+    }
+    
+    .grid-item:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px var(--neon-pink);
+    }
+    
+    .counter {
+      font-size: 3em;
+      text-align: center;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px var(--neon-green);
+      margin: 20px 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .counter-label {
+      text-align: center;
+      color: var(--neon-pink);
+      font-size: 1.2em;
+    }
+    
+    .tab-container {
+      margin: 30px 0;
+    }
+    
+    .tab-headers {
+      display: flex;
+      border-bottom: 2px solid var(--neon-green);
+    }
+    
+    .tab-header {
+      padding: 10px 20px;
+      background-color: rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      margin-right: 5px;
+      transition: all 0.3s;
+    }
+    
+    .tab-header.active {
+      background-color: var(--neon-green);
+      color: black;
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.3);
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+      border-left: 1px solid var(--neon-green);
+      border-right: 1px solid var(--neon-green);
+      border-bottom: 1px solid var(--neon-green);
+    }
+    
+    .tab-panel {
+      display: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+    }
+    
+    .price-box {
+      text-align: center;
+      font-size: 2em;
+      color: var(--neon-yellow);
+      margin: 30px 0;
+      text-shadow: 0 0 10px var(--neon-yellow);
+      animation: float 3s infinite;
+    }
+    
+    /* Crazy animations for various elements */
+    .spin-on-hover:hover {
+      animation: rotateAround 1s infinite linear;
+    }
+    
+    .move-away:hover {
+      animation: moveAway 0.5s forwards;
+    }
+    
+    @keyframes moveAway {
+      to {
+        transform: translateX(100px) translateY(-50px) scale(0.5);
+        opacity: 0;
+      }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2em;
+      }
+      
+      h2 {
+        font-size: 1.6em;
+      }
+      
+      body {
+        padding: 30px 15px;
+      }
+      
+      .floating-buttons {
+        display: none;
+      }
+      
+      .feature-box {
+        flex-direction: column;
+      }
+      
+      #popup-ad {
+        width: 80%;
+        left: 10%;
+        right: auto;
+      }
+    }
+    
+    /* Accessibility focus styles */
+    a:focus, button:focus {
+      outline: 2px solid var(--neon-yellow);
+      outline-offset: 3px;
+    }
+    
+    /* Cursor customization */
+    html {
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%2300ff99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 19 21 12 17 5 21 12 2"></polygon></svg>') 12 12, auto;
+    }
+    
+    a, button, .clickable {
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ff00ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.36 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.34 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>') 12 12, pointer;
+    }
+
+    /* GORILLA TAG SPECIFIC STYLING */
+    .monke-mode {
+      cursor: none !important;
+    }
+
+    #monke-cursor {
+      animation: monke-bounce 1s infinite ease-in-out;
+    }
+
+    @keyframes monke-bounce {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.2); }
+    }
+
+    .monke-jump {
+      animation: tree-grow 2s forwards;
+    }
+
+    @keyframes tree-grow {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    }
+
+    .gorilla-tag-section {
+      background: linear-gradient(135deg, #254117, #437C17);
+      border-left: 5px solid #8BC34A;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gorilla-tag-section::before {
+      content: "🌴";
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 40px;
+      opacity: 0.3;
+      z-index: 0;
+    }
+
+    .vine {
+      position: fixed;
+      width: 10px;
+      height: 0;
+      background-color: #8BC34A;
+      z-index: 999;
+      opacity: 0.8;
+      transition: height 0.5s;
+    }
+
+    .leaf {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background-color: #8BC34A;
+      border-radius: 50% 0;
+      transform: rotate(45deg);
+      z-index: 999;
+    }
+
+    .jungle-blur {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(35, 70, 30, 0.1);
+      z-index: 998;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .gorilla-banana {
+      font-size: 2em;
+      color: #FFD700;
+      animation: gorilla-spin 3s infinite linear;
+      display: inline-block;
+    }
+
+    @keyframes gorilla-spin {
+      0% { transform: rotate(0) translateY(0); }
+      25% { transform: rotate(90deg) translateY(-10px); }
+      50% { transform: rotate(180deg) translateY(0); }
+      75% { transform: rotate(270deg) translateY(10px); }
+      100% { transform: rotate(360deg) translateY(0); }
+    }
+
+    .gorilla-tag-button {
+      background: linear-gradient(45deg, #8BC34A, #4CAF50);
+      border: none;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 30px;
+      font-weight: bold;
+      box-shadow: 0 0 20px rgba(139, 195, 74, 0.5);
+      transition: all 0.3s;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gorilla-tag-button::before {
+      content: "🦍";
+      position: absolute;
+      left: -30px;
+      opacity: 0;
+      transition: all 0.3s;
+    }
+
+    .gorilla-tag-button:hover::before {
+      left: 15px;
+      opacity: 1;
+    }
+
+    .gorilla-tag-button:hover {
+      padding-left: 50px;
+      background: linear-gradient(45deg, #4CAF50, #8BC34A);
+      transform: scale(1.05);
+    }
+
+    .jungle-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M10,90 Q20,60 30,90 Q40,60 50,90 Q60,60 70,90 Q80,60 90,90" stroke="%238BC34A" fill="none" stroke-width="5" /></svg>');
+      background-size: 100px 100px;
+      opacity: 0.05;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .gorilla-tag-console {
+      background-color: rgba(35, 70, 30, 0.8);
+      border-left: 5px solid #8BC34A;
+      color: #ACFF65;
+      font-family: monospace;
+    }
+
+    .gorilla-tag-console div {
+      animation: jungle-glow 2s infinite;
+    }
+
+    @keyframes jungle-glow {
+      0%, 100% { text-shadow: 0 0 5px #8BC34A; }
+      50% { text-shadow: 0 0 10px #ACFF65; }
+    }
+
+    /* Special effect for gorilla tag content */
+    .gorilla-tag-text {
+      position: relative;
+      display: inline-block;
+    }
+
+    .gorilla-tag-text::after {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, #8BC34A, transparent);
+    }
+
+    /* Monke Tracker Counter */
+    .monke-counter {
+      position: fixed;
+      right: 20px;
+      top: 20px;
+      background: rgba(35, 70, 30, 0.8);
+      color: #ACFF65;
+      padding: 10px 15px;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      z-index: 9999;
+      border: 2px solid #8BC34A;
+      box-shadow: 0 0 10px rgba(139, 195, 74, 0.5);
+      display: none;
+    }
+
+    .monke-counter-number {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .monke-counter-label {
+      font-size: 0.8em;
+    }
+
+    /* Secret unlocked animation */
+    .secret-unlocked {
+      animation: jungle-reveal 1s forwards;
+    }
+
+    @keyframes jungle-reveal {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Tree climber indicator */
+    .tree-climber {
+      position: fixed;
+      left: 20px;
+      height: 200px;
+      width: 20px;
+      background-color: #795548;
+      border-radius: 10px;
+      z-index: 998;
+      display: none;
+    }
+
+    .tree-climber::before {
+      content: "🦍";
+      position: absolute;
+      left: -5px;
+      font-size: 30px;
+      transition: all 0.3s;
+    }
+
+    .tree-leaf {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      right: -10px;
+      background-color: #8BC34A;
+      border-radius: 50% 0;
+      transform: rotate(45deg);
+    }
+  </style>
+</head>
+<body>
+  <div id="cursor-follower"></div>
+  
+  <div class="container">
+    <h1 class="glitch-effect">viewgrip review: the 1800-line chaos generator</h1>
+
+    <div id="popup-ad">
+      OH YEA COOL LINK TOTALLY SHOULD USE 👉 <a href="#" class="move-away" target="_blank">CLICK HERE 4 LEGIT CL0UT</a>
+      <button id="popup-close">✖</button>
+    </div>
+
+    <div class="floating-buttons">
+      <button class="spin-on-hover" id="banana-button">🐵 CLICK HERE 4 BANANAS</button>
+      <button class="spin-on-hover" id="reset-button">⚡ RESET SYSTEM</button>
+      <button class="spin-on-hover" id="rocket-button">🚀 GO BEYOND THE CLOUD</button>
+    </div>
+
+    <div class="section console">
+      <div class="glitch-text">[CONSOLE] SYSTEM LOADING...</div>
+      <div>Initializing Viewgrip Mod... Complete.</div>
+      <div>🔧 Autoplay enabled. Mute activated. Fullscreen engaged.</div>
+      <div>[ERROR]: Something exploded.</div>
+      <div>[INFO]: Monkey detected!</div>
+      <div>[WARNING]: CPU temperature is OVER 9000°C</div>
+      <div>[CRITICAL]: User attention span decreasing rapidly</div>
+      <div>[DEBUG]: Initializing chaos protocol...</div>
+    </div>
+
+    <div class="section">
+      <h2 class="glitch-text">What even is Viewgrip?</h2>
+      <p>Viewgrip is basically what happens when you ask a vending machine for views. It gives you clout without you having to ask. Get those views while you do absolutely nothing. I love it! <span class="banana" id="hidden-banana-1">🍌</span></p>
+      
+      <p>Imagine a world where your content gets watched by millions of bots while you sleep. That's the Viewgrip promise - artificial engagement with real payment processing!</p>
+      
+      <div class="error-message">
+        [SYSTEM ERROR #42069]: Cannot verify human engagement metrics. Randomizing statistics instead.
+      </div>
+      
+      <p>The founder of Viewgrip once told me that the idea came to him in a fever dream after drinking too much Mountain Dew and watching The Matrix trilogy on repeat for 72 hours straight. Honestly, that explains A LOT.</p>
+    </div>
+
+    <div class="scrolling-text">
+      BREAKING NEWS: LOCAL DEVELOPER LOSES MIND AFTER USING VIEWGRIP FOR 48 HOURS STRAIGHT | CLICK FARMS HATE THIS ONE WEIRD TRICK | YOUR GRANDMOTHER COULD GET MORE VIEWS THAN YOU WITH THIS SIMPLE HACK | SCIENTISTS BAFFLED BY VIEWGRIP'S ABILITY TO GENERATE FAKE ENGAGEMENT
+    </div>
+
+    <div class="section">
+      <h2 class="glitch-text">Why I Use Viewgrip</h2>
+      <p>I'm debugging my Lua script while this thing just plays like 50 random Minecraft Let's Plays in the background. It's like running 5 billion tabs but with *zero* stress. Love it. <span class="banana" id="hidden-banana-2">🍌</span></p>
+      
+      <blockquote>
+        "I've been using Viewgrip for three days and my laptop hasn't caught fire yet. That's better than most of my coding projects!" - Me, probably
+      </blockquote>
+      
+      <div class="warning-message">
+        [SYSTEM WARNING]: Multiple instances of Viewgrip detected. Your CPU is crying silently.
+      </div>
+    </div>
+
+    <div class="code-snippet">
+      <code>
+        <span class="comment">-- Example Lua script that somehow works with Viewgrip</span><br>
+        <span class="keyword">local</span> monkey = Instance.<span class="function">new</span>(<span class="string">"Part"</span>)<br>
+        monkey.Name = <span class="string">"WhyIsThisOnFire"</span><br>
+        monkey.Touched:<span class="function">Connect</span>(<span class="keyword">function</span>(hit)<br>
+        &nbsp;&nbsp;<span class="keyword">if</span> hit.Name == <span class="string">"Ground"</span> <span class="keyword">then</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="function">print</span>(<span class="string">"monkey detected gravity"</span>)<br>
+        &nbsp;&nbsp;<span class="keyword">end</span><br>
+        <span class="keyword">end</span>)
+      </code>
+    </div>
+
+    <div class="section">
+      <h2 class="animated-glitch">The 🔥 FEATURES 🔥 of Viewgrip</h2>
+      
+      <div class="feature-box">
+        <div class="feature-item">
+          <h3>24/7 View Generation</h3>
+          <p>Your content gets played on remote servers somewhere in a basement in Eastern Europe. Probably not legal, definitely not ethical!</p>
+        </div>
+        
+        <div class="feature-item">
+          <h3>Engagement Metrics</h3>
+          <p>Random numbers go up! Watch as your analytics become completely meaningless but look impressive to people who don't know better.</p>
+        </div>
+        
+        <div class="feature-item">
+          <h3>CPU Melter</h3>
+          <p>Viewgrip will utilize 110% of your CPU resources. The extra 10% is borrowed from your neighbor's WiFi.</p>
+        </div>
+      </div>
+      
+      <div class="price-box">
+        Only $49.99/month!*
+        <div style="font-size: 0.4em; margin-top: 10px;">*Plus your dignity and possibly your computer's soul</div>
+      </div>
+    </div>
+
+    <div id="ad-section" class="ad-container">
+      <div class="ad-text">🔥🔥🔥 LIMITED TIME OFFER!!! 🔥🔥🔥</div>
+      <p style="color: yellow; font-family: 'Comic Sans MS', cursive; margin-top: 10px;">
+        GET 50% MORE VIEWS FOR JUST 200% MORE MONEY!!!
+      </p>
+      <button class="crazy-button" id="limited-offer">CLICK HERE NOW!!!</button>
+    </div>
+
+    <div class="section">
+      <h2 class="glitch-text">Actual Testimonials from Real* People</h2>
+      <p class="comment" style="font-size: 0.8em; color: #999;">*Realness not guaranteed. May contain traces of AI-generated enthusiasm.</p>
+      
+      <div class="testimonial">
+        <div class="rating">★★★★★</div>
+        <p>After using Viewgrip, my YouTube channel went from 5 views to 5 million views overnight! My actual engagement didn't change at all, but the numbers look SO impressive on my media kit! Now I'm drowning in sponsorship offers from questionable VPN companies!</p>
+        <div class="testimonial-author">- XxX_ProGamer420_XxX</div>
+      </div>
+      
+      <div class="testimonial">
+        <div class="rating">★★★★☆</div>
+        <p>I would give Viewgrip 5 stars but it literally set my graphics card on fire. On the plus side, I no longer need to pay for heating in my apartment. The views are absolutely pouring in though, so I guess it's worth the property damage!</p>
+        <div class="testimonial-author">- HomelessButViralNow</div>
+      </div>
+      
+      <div class="testimonial">
+        <div class="rating">★★★★★</div>
+        <p>I'm pretty sure using Viewgrip violates at least 17 different terms of service agreements, but hey, I'm an INFLUENCER now! My content is still terrible, but the metrics look amazing! Who needs talent when you have Viewgrip?</p>
+        <div class="testimonial-author">- EthicallyBankrupt23</div>
+      </div>
+      
+      <div class="testimonial">
+        <div class="rating">★★★☆☆</div>
+        <p>My antivirus had a mental breakdown after I installed Viewgrip. It just displayed "I quit" and uninstalled itself. BUT MY VIDEO HAS 10 MILLION VIEWS NOW! Worth it!</p>
+        <div class="testimonial-author">- SecurityWhoNeeds it</div>
+      </div>
+      
+      <div class="testimonial">
+        <div class="rating">★★★★★</div>
+        <p>As a totally legitimate business person who definitely isn't paid to write this review, I can honestly say Viewgrip changed my life. My cat video now has more views than Gangnam Style. Sure, I had to take out a second mortgage to pay for the premium tier, but fame has its price!</p>
+        <div class="testimonial-author">- NotAPaidActor</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="glitch-text">The Technical Nightmare</h2>
+      
+      <p>Let me explain how Viewgrip works using some completely accurate and not-at-all made up technical jargon:</p>
+      
+      <div class="code-snippet">
+        <code>
+          <span class="comment">// This is the actual code powering Viewgrip</span><br>
+          <span class="keyword">function</span> <span class="function">generateViews</span>(videoId, moneyPaid) {<br>
+          &nbsp;&nbsp;<span class="keyword">const</span> realViews = 0; <span class="comment">// lol</span><br>
+          &nbsp;&nbsp;<span class="keyword">const</span> fakeViews = moneyPaid * 1000 * Math.<span class="function">random</span>();<br>
+          &nbsp;&nbsp;<span class="keyword">return</span> {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;reportedViews: fakeViews,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;actualViews: realViews,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;moneyWasted: moneyPaid,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;serversFriedInProcess: Math.<span class="function">ceil</span>(moneyPaid / 10)<br>
+          &nbsp;&nbsp;};<br>
+          }
+        </code>
+      </div>
+      
+      <p>As you can see from this <i>leaked</i> source code, the algorithm is incredibly sophisticated. It takes your money and multiplies it by a random number to determine how many views you get. The real engineering marvel is how they convert your credit card information directly into disappointment.</p>
+      
+      <div class="console">
+        <div>[VIEWGRIP LOG] User paid $99.99 for premium package</div>
+        <div>[VIEWGRIP LOG] Initializing bot farms in [REDACTED]</div>
+        <div>[VIEWGRIP LOG] Executing Operation "Fool The Algorithm"</div>
+        <div>[VIEWGRIP ERROR] Ethics module not found</div>
+        <div>[VIEWGRIP SUCCESS] Views delivered: 1,457,329</div>
+        <div>[VIEWGRIP REALITY] Actual humans who watched: 3</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="glitch-text">My Personal Experience as a Slowly Growing Gorilla Tag Content Creator</h2>
+      
+      <p>As someone who's been trying to grow a Gorilla Tag YouTube channel, I thought Viewgrip would be my ticket to the big leagues. I've been using Viewgrip for about 3 weeks now. In that time, my laptop has crashed 17 times, my electricity bill has quadrupled, and I'm pretty sure my webcam is watching me even when it's unplugged. BUT MY SUBSCRIBER COUNT IS UP 5000%!</p>
+      
+      <div class="console">
+        <div>[GORILLA TAG STATUS] Monke mode activated</div>
+        <div>[VIEWGRIP STATUS] Generating fake views for "HOW TO CLIMB LIKE A PRO IN GORILLA TAG (NOT CLICKBAIT)"</div>
+        <div>[SYSTEM WARNING] Processing 500 fake views per second</div>
+        <div>[GORILLA TAG SERVER] Why are there so many bots watching this stream?</div>
+        <div>[ERROR] Cannot distinguish real gorillas from bot gorillas</div>
+      </div>
+      
+      <p>My Gorilla Tag content used to get about 10 views (mostly from my mom using different accounts). Now that I've integrated Viewgrip, my videos about advanced tree-climbing techniques and secret canyon shortcuts are getting THOUSANDS of views! Of course, my comment section is still completely empty, and my monetization is actually going backwards somehow, but those numbers look impressive on my channel!</p>
+      
+      <div class="counter">
+        1,356,792
+      </div>
+      <div class="counter-label">
+        Fake Views Generated on My Gorilla Tag Videos
+      </div>
+      
+      <div class="testimonial">
+        <div class="rating">★★★★★</div>
+        <p>Ever since I started using Viewgrip, my Gorilla Tag videos have blown up! I still have no idea how to actually play the game properly, but that doesn't matter because I LOOK successful. My tutorial on "How to Tag Other Monkeys (IMPOSSIBLE METHOD)" has 2 million views and exactly 0 likes. Success!</p>
+        <div class="testimonial-author">- Me, a clearly successful Gorilla Tag influencer</div>
+      </div>
+      
+      <p>Side effects of using Viewgrip for my Gorilla Tag channel include:
+      <ul>
+        <li>Random browser tabs opening to Russian websites</li>
+        <li>My smart fridge now mines Ethereum</li>
+        <li>Strange charges on my credit card for "Server Maintenance in Kazakhstan"</li>
+        <li>A growing suspicion that I've made a terrible mistake</li>
+        <li>Unexplainable urge to defend Viewgrip in online forums</li>
+      </ul>
+      </p>
+      
+      <blockquote>
+        "Help me, I can't stop using Viewgrip. The numbers keep going up, and my brain releases dopamine. Is this what addiction feels like? Please send help. Or more cloud credits, whichever is easier." - My diary, Day 17
+      </blockquote>
+    </div>
+
+    <div class="section">
+      <h2 class="glitch-text">Conclusion: Should You Use Viewgrip?</h2>
+      
+      <p>If you value your digital security, online reputation, ethical standing, and financial well-being, then absolutely NOT.</p>
+      
+      <p>But if you're a chaos gremlin who feeds on broken systems and meaningless metrics, then Viewgrip might just be your perfect digital soul mate! <span class="banana" id="hidden-banana-4">🍌</span></p>
+      
+      <div class="success-message">
+        [CONCLUSION]: Viewgrip is definitely a product that exists and takes your money in exchange for numbers that go up.
+      </div>
+      
+      <blockquote>
+        "In the future, everyone will be famous for 15 minutes... or until their Viewgrip subscription runs out." - Andy Warhol, probably, if he were alive to see this madness
+      </blockquote>
+      
+      <button class="crazy-button" id="final-cta">GET VIEWGRIP NOW AND KISS YOUR INTEGRITY GOODBYE!</button>
+    </div>
+
+    <div id="easter-egg-container">
+      <div class="easter-egg" id="egg1"></div>
+      <div class="easter-egg" id="egg2"></div>
+      <div class="easter-egg" id="egg3"></div>
+    </div>
+
+    <div class="popup-notification" id="notification">
+      You found a secret! +100 imaginary internet points!
+    </div>
+
+    <footer>
+      Created by a tired Gorilla Tag dev who just wanted to make the monkey fly correctly 🦍<br>
+      <code>// ctrl + s to save your sanity</code><br>
+      <p style="margin-top: 10px; font-size: 0.8em;">
+        Disclaimer: Viewgrip is not a real product (thankfully). This page is satire. Any resemblance to actual shady view-generation services is purely coincidental and also concerning.
+      </p>
+    </footer>
+  </div>
+
+  <div class="marquee">
+    <span>BREAKING NEWS: VIEWGRIP SERVERS CAUGHT FIRE IN MYSTERIOUS DATACENTER INCIDENT • LOCAL DEVELOPER ACHIEVES FAME, LOSES WILL TO LIVE • TERMS OF SERVICE? MORE LIKE TERMS OF SUGGESTIONS • 99.9% OF STATISTICS ARE MADE UP ON THE SPOT • DOWNLOAD MORE RAM AT DOWNLOADMORERAM.COM • VIEWGRIP: BECAUSE WHO NEEDS AUTHENTIC ENGAGEMENT ANYWAY? • • •</span>
+  </div>
+
+  <div class="matrix-effect" id="matrix-canvas"></div>
+
+  <script>
+    // ======= GORILLA TAG MONKE SPECIAL SECTION ========
+
+    // Track monke jumps for Gorilla Tag section
+    let monkeJumps = 0;
+    const maxMonkeJumps = 50;
+
+    // Special monke mode activation
+    function activateMonkeMode() {
+      const body = document.body;
+      body.classList.add('monke-mode');
+      
+      // Add monke cursor
+      const monkeCursor = document.createElement('div');
+      monkeCursor.id = 'monke-cursor';
+      monkeCursor.innerHTML = '🦍';
+      monkeCursor.style.position = 'fixed';
+      monkeCursor.style.fontSize = '40px';
+      monkeCursor.style.zIndex = '99999';
+      monkeCursor.style.pointerEvents = 'none';
+      monkeCursor.style.transform = 'translate(-50%, -50%)';
+      body.appendChild(monkeCursor);
+      
+      // Track cursor with monke
+      document.addEventListener('mousemove', (e) => {
+        monkeCursor.style.left = e.pageX + 'px';
+        monkeCursor.style.top = e.pageY + 'px';
+      });
+      
+      // Add tree climbing effect
+      document.addEventListener('click', (e) => {
+        const monkeJump = document.createElement('div');
+        monkeJump.className = 'monke-jump';
+        monkeJump.style.position = 'absolute';
+        monkeJump.style.left = e.pageX + 'px';
+        monkeJump.style.top = e.pageY + 'px';
+        monkeJump.innerHTML = '🌴';
+        monkeJump.style.fontSize = '30px';
+        monkeJump.style.zIndex = '9999';
+        monkeJump.style.transform = 'translate(-50%, -50%)';
+        body.appendChild(monkeJump);
+        
+        monkeJumps++;
+        
+        // Show monke jump progress
+        const notification = document.getElementById('notification');
+        notification.textContent = `Monke jump! ${monkeJumps}/${maxMonkeJumps} tree climbs complete!`;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+          notification.classList.remove('show');
+          monkeJump.remove();
+        }, 2000);
+        
+        // Unlock gorilla tag secret
+        if (monkeJumps >= maxMonkeJumps) {
+          unlockGorillaTagSecret();
+        }
+      });
+      
+      // Add gorilla sounds
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      document.addEventListener('keydown', () => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.value = Math.random() * 100 + 200;
+        gainNode.gain.value = 0.1;
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        
+        setTimeout(() => {
+          oscillator.stop();
+        }, 100);
+      });
+    }
+
+    // Unlock Gorilla Tag secret section
+    function unlockGorillaTagSecret() {
+      const secretSection = document.createElement('div');
+      secretSection.className = 'section';
+      secretSection.innerHTML = `
+        <h2 class="glitch-text">SECRET GORILLA TAG TECHNIQUE UNLOCKED!</h2>
+        
+        <div class="console">
+          <div>[GORILLA TAG SECRET] Monke master mode activated</div>
+          <div>[SYSTEM] You've unlocked the secret Gorilla Tag technique</div>
+          <div>[REWARD] You can now climb any tree in the game!</div>
+        </div>
+        
+        <p>Congratulations, fellow monke! You've unlocked the ultra-rare, super-secret climbing technique that only 0.01% of Gorilla Tag players know about. With this technique, you'll be able to climb ANY tree, no matter how tall or slippery!</p>
+        
+        <div class="code-snippet">
+          <code>
+            <span class="comment">// The secret Gorilla Tag algorithm</span><br>
+            <span class="keyword">function</span> <span class="function">ultimateMonkeClimb</span>() {<br>
+            &nbsp;&nbsp;<span class="keyword">const</span> physics = game.getPhysicsEngine();<br>
+            &nbsp;&nbsp;physics.gravity = 0; <span class="comment">// This is definitely how it works</span><br>
+            &nbsp;&nbsp;player.climb_strength = Infinity;<br>
+            &nbsp;&nbsp;player.nickname = "TreeMaster9000";<br>
+            &nbsp;&nbsp;<span class="keyword">return</span> "You're now the ultimate monke!";<br>
+            }
+          </code>
+        </div>
+        
+        <p>Just copy this code into your game somehow (we're not telling you how, that's part of the secret), and you'll instantly become the best Gorilla Tag player in the universe!</p>
+        
+        <div class="testimonial">
+          <div class="rating">★★★★★</div>
+          <p>I used this secret technique and now I'm the king of the jungle! Other monkes bow down to me when I enter the server. The game developers are constantly trying to ban me because I'm TOO GOOD!</p>
+          <div class="testimonial-author">- GorillaGodX</div>
+        </div>
+      `;
+      
+      // Add secret section before the conclusion
+      const conclusionSection = document.querySelector('h2.glitch-text:contains("Conclusion")').parentNode;
+      if (conclusionSection) {
+        conclusionSection.parentNode.insertBefore(secretSection, conclusionSection);
+      } else {
+        document.querySelector('.container').appendChild(secretSection);
+      }
+      
+      // Show notification
+      const notification = document.getElementById('notification');
+      notification.textContent = "✨ SECRET GORILLA TAG TECHNIQUE UNLOCKED! ✨";
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 5000);
+    }
+
+    // Add special Gorilla Tag button
+    document.addEventListener('DOMContentLoaded', () => {
+      const gorillaButton = document.createElement('button');
+      gorillaButton.innerHTML = '🦍 ACTIVATE MONKE MODE';
+      gorillaButton.className = 'crazy-button';
+      gorillaButton.style.position = 'fixed';
+      gorillaButton.style.bottom = '20px';
+      gorillaButton.style.left = '20px';
+      gorillaButton.style.zIndex = '9999';
+      
+      gorillaButton.addEventListener('click', () => {
+        activateMonkeMode();
+        gorillaButton.remove();
+      });
+      
+      document.body.appendChild(gorillaButton);
+    });
+    
+    // Initialize banana counter
+    let bananaCount = 0;
+    const maxBananas = 25;
+    let bananasFound = [];
+    
+    // Create hidden bananas
+    for (let i = 5; i <= maxBananas; i++) {
+      const hiddenBanana = document.createElement('span');
+      hiddenBanana.className = 'banana';
+      hiddenBanana.id = 'hidden-banana-' + i;
+      hiddenBanana.textContent = '🍌';
+      hiddenBanana.style.position = 'absolute';
+      hiddenBanana.style.top = Math.random() * 100 + 'vh';
+      hiddenBanana.style.left = Math.random() * 100 + 'vw';
+      hiddenBanana.style.opacity = '0.3';
+      hiddenBanana.style.zIndex = '100';
+      hiddenBanana.style.fontSize = '24px';
+      document.body.appendChild(hiddenBanana);
+    }
+    
+    // Cursor follower
+    const cursorFollower = document.getElementById('cursor-follower');
+    
+    document.addEventListener('mousemove', (e) => {
+      const x = e.clientX;
+      const y = e.clientY;
+      
+      cursorFollower.style.left = x + 'px';
+      cursorFollower.style.top = y + 'px';
+    });
+    
+    // Banana click handlers
+    document.querySelectorAll('.banana').forEach(banana => {
+      banana.addEventListener('click', function() {
+        if (!bananasFound.includes(this.id)) {
+          bananasFound.push(this.id);
+          bananaCount++;
+          
+          this.style.transform = 'scale(2)';
+          this.style.transition = 'transform 0.5s';
+          
+          setTimeout(() => {
+            this.style.transform = 'scale(1)';
+          }, 500);
+          
+          const notification = document.getElementById('notification');
+          notification.textContent = `Banana found! ${bananaCount}/${maxBananas} collected!`;
+          notification.classList.add('show');
+          
+          setTimeout(() => {
+            notification.classList.remove('show');
+          }, 3000);
+          
+          if (bananaCount === maxBananas) {
+            alert("CONGRATULATIONS! You've found all the bananas! You win absolutely nothing but bragging rights!");
+          }
+        }
+      });
+    });
+    
+    // Popup close button
+    document.getElementById('popup-close').addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Make it hard to close the popup
+      const popup = document.getElementById('popup-ad');
+      const randomX = Math.random() * (window.innerWidth - 300);
+      const randomY = Math.random() * (window.innerHeight - 200);
+      
+      popup.style.transition = 'all 0.2s';
+      popup.style.left = randomX + 'px';
+      popup.style.top = randomY + 'px';
+      popup.style.right = 'auto';
+      popup.style.bottom = 'auto';
+      
+      // After 5 attempts, actually close it
+      if (!popup.dataset.attempts) {
+        popup.dataset.attempts = 1;
+      } else {
+        popup.dataset.attempts = parseInt(popup.dataset.attempts) + 1;
+      }
+      
+      if (parseInt(popup.dataset.attempts) >= 5) {
+        popup.style.display = 'none';
+      }
+    });
+    
+    // Floating buttons
+    document.getElementById('banana-button').addEventListener('click', function() {
+      for (let i = 0; i < 20; i++) {
+        const banana = document.createElement('div');
+        banana.className = 'hidden-banana';
+        banana.textContent = '🍌';
+        banana.style.position = 'fixed';
+        banana.style.top = Math.random() * window.innerHeight + 'px';
+        banana.style.left = Math.random() * window.innerWidth + 'px';
+        banana.style.opacity = '1';
+        banana.style.zIndex = '9999';
+        banana.style.animation = `float ${2 + Math.random() * 4}s infinite`;
+        document.body.appendChild(banana);
+        
+        setTimeout(() => {
+          banana.remove();
+        }, 5000);
+      }
+    });
+    
+    document.getElementById('reset-button').addEventListener('click', function() {
+      const console = document.querySelector('.console');
+      console.innerHTML += '<div>[SYSTEM]: RESETTING... JUST KIDDING, NOTHING WILL CHANGE!</div>';
+      
+      // Flash the screen
+      const flash = document.createElement('div');
+      flash.style.position = 'fixed';
+      flash.style.top = '0';
+      flash.style.left = '0';
+      flash.style.width = '100%';
+      flash.style.height = '100%';
+      flash.style.backgroundColor = 'white';
+      flash.style.opacity = '0.8';
+      flash.style.zIndex = '9998';
+      flash.style.pointerEvents = 'none';
+      document.body.appendChild(flash);
+      
+      setTimeout(() => {
+        flash.remove();
+      }, 100);
+    });
+    
+    document.getElementById('rocket-button').addEventListener('click', function() {
+      // Make the page scroll rapidly to bottom then top
+      const scrollToBottom = () => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: 'smooth'
+        });
+        
+        setTimeout(() => {
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        }, 1000);
+      };
+      
+      scrollToBottom();
+    });
+    
+    // Tab functionality
+    document.querySelectorAll('.tab-header').forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-header').forEach(t => {
+          t.classList.remove('active');
+        });
+        
+        // Add active class to clicked tab
+        this.classList.add('active');
+        
+        // Hide all tab panels
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+          panel.classList.remove('active');
+        });
+        
+        // Show the selected panel
+        const tabId = this.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+    
+    // Play button effect
+    const playButton = document.querySelector('.play-button');
+    if (playButton) {
+      playButton.addEventListener('click', function() {
+        alert("NICE TRY! There's no actual video here. Viewgrip doesn't believe in providing real content!");
+      });
+    }
+    
+    // Crazy buttons
+    document.querySelectorAll('.crazy-button').forEach(button => {
+      button.addEventListener('mouseover', function() {
+        if (Math.random() > 0.5) {
+          const maxX = window.innerWidth - this.offsetWidth;
+          const maxY = window.innerHeight - this.offsetHeight;
+          
+          this.style.position = 'absolute';
+          this.style.left = Math.random() * maxX + 'px';
+          this.style.top = Math.random() * maxY + 'px';
+        }
+      });
+      
+      button.addEventListener('click', function() {
+        alert("CONGRATULATIONS! You've just won a lifetime subscription to Viewgrip! (Just kidding, this is all fake, remember?)");
+      });
+    });
+    
+    // Easter eggs
+    document.querySelectorAll('.easter-egg').forEach(egg => {
+      egg.addEventListener('click', function() {
+        const notification = document.getElementById('notification');
+        notification.textContent = "You found a secret easter egg! Nothing happens, but you should feel accomplished!";
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+          notification.classList.remove('show');
+        }, 3000);
+      });
+    });
+    
+    // Matrix effect
+    const createMatrixEffect = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.zIndex = '-1';
+      canvas.style.opacity = '0.05';
+      canvas.style.pointerEvents = 'none';
+      
+      document.getElementById('matrix-canvas').appendChild(canvas);
+      
+      const ctx = canvas.getContext('2d');
+      
+      // Matrix characters
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$+-*/=%"\'#&_(),.;:?!\\|{}<>[]^~';
+      
+      // Character size and columns
+      const fontSize = 14;
+      const columns = Math.floor(canvas.width / fontSize);
+      
+      // Array to track the y position of each column
+      const drops = [];
+      for (let i = 0; i < columns; i++) {
+        drops[i] = 1;
+      }
+      
+      // Drawing the characters
+      function draw() {
+        // Black background with opacity
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Green text
+        ctx.fillStyle = '#00ff99';
+        ctx.font = fontSize + 'px monospace';
+        
+        // Loop through the drops array
+        for (let i = 0; i < drops.length; i++) {
+          // Choose a random character
+          const char = characters[Math.floor(Math.random() * characters.length)];
+          
+          // Draw the character
+          ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+          
+          // Move the drop down
+          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          
+          drops[i]++;
+        }
+      }
+      
+      // Call the draw function every 33ms
+      setInterval(draw, 33);
+    };
+    
+    // Run the matrix effect
+    createMatrixEffect();
+    
+    // Simulate a loading delay for dramatic effect
+    document.addEventListener('DOMContentLoaded', function() {
+      const body = document.body;
+      body.style.opacity = '0';
+      
+      setTimeout(() => {
+        body.style.transition = 'opacity 1s';
+        body.style.opacity = '1';
+      }, 500);
+    });
+    
+    // Random popup ads that appear occasionally
+    setInterval(() => {
+      if (Math.random() > 0.95) {
+        const popupTexts = [
+          "DON'T CLOSE THIS! Your computer might explode!",
+          "SECRET HACK: Click here to download more RAM!",
+          "WARNING: Your brain cells are depleting while using this website!",
+          "CONGRATULATIONS: You're the 1,000,000th visitor! Click to claim your prize!",
+          "ALERT: Viewgrip needs your credit card details to verify you're human!"
+        ];
+        
+        const randomText = popupTexts[Math.floor(Math.random() * popupTexts.length)];
+        
+        const popup = document.createElement('div');
+        popup.style.position = 'fixed';
+        popup.style.width = '300px';
+        popup.style.padding = '20px';
+        popup.style.backgroundColor = '#ff00ff';
+        popup.style.color = 'white';
+        popup.style.borderRadius = '10px';
+        popup.style.boxShadow = '0 0 20px rgba(255, 0, 255, 0.5)';
+        popup.style.zIndex = '99999';
+        popup.style.top = Math.random() * (window.innerHeight - 200) + 'px';
+        popup.style.left = Math.random() * (window.innerWidth - 300) + 'px';
+        popup.style.fontFamily = "'Comic Sans MS', cursive";
+        popup.style.animation = 'shake 0.5s infinite';
+        
+        popup.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-weight: bold;">IMPORTANT MESSAGE!!!</span>
+            <button style="background: none; border: none; color: white; font-size: 16px; cursor: pointer;">✖</button>
+          </div>
+          <p>${randomText}</p>
+          <button style="width: 100%; padding: 10px; margin-top: 10px; background-color: yellow; color: black; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">OK</button>
+        `;
+        
+        document.body.appendChild(popup);
+        
+        // Remove after a few seconds or when closed
+        const closeBtn = popup.querySelector('button');
+        closeBtn.addEventListener('click', () => {
+          popup.remove();
+        });
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          if (document.body.contains(popup)) {
+            popup.remove();
+          }
+        }, 5000);
+      }
+    }, 30000);
+  </script>
+</body>
+</html>
