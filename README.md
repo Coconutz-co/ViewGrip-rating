@@ -19,7 +19,3 @@ viewgrip is a platform where users watch videos to earn views in return. it's pa
 
 👉 [**use my referral link**](https://www.viewgrip.net/reff/melmo) so we both win!  
 just click it and you’ll be taken right there.
-
-## disclaimer
-
-viewgrip isn’t affiliated with youtube or any other platform. use responsibly and don’t spam.
